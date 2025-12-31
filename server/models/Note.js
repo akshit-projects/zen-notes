@@ -1,17 +1,19 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const NoteSchema = new mongoose.Schema({
+  profileId: { type: String, required: true },
+  userId: { type: String, required: true },
   title: {
     type: String,
     required: true,
   },
   content: {
     type: String,
-    default: '',
+    default: "",
   },
   folderId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Folder',
+    ref: "Folder",
     required: true,
   },
   createdAt: {
@@ -21,11 +23,11 @@ const NoteSchema = new mongoose.Schema({
 });
 
 // Use a virtual `id` field that maps to `_id` for frontend compatibility
-NoteSchema.virtual('id').get(function(){
-    return this._id.toHexString();
+NoteSchema.virtual("id").get(function () {
+  return this._id.toHexString();
 });
-NoteSchema.set('toJSON', {
-    virtuals: true
+NoteSchema.set("toJSON", {
+  virtuals: true,
 });
 
-module.exports = mongoose.model('Note', NoteSchema);
+module.exports = mongoose.model("Note", NoteSchema);

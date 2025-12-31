@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
-const FolderSchema = new mongoose.Schema({
-  profileId: { type: String, required: true },
+const ProfileSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   name: {
     type: String,
@@ -9,16 +8,21 @@ const FolderSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
+    required: true,
+  },
+  updatedAt: {
+    type: Date,
     default: Date.now,
+    required: true,
   },
 });
 
 // Use a virtual `id` field that maps to `_id` for frontend compatibility
-FolderSchema.virtual("id").get(function () {
+ProfileSchema.virtual("id").get(function () {
   return this._id.toHexString();
 });
-FolderSchema.set("toJSON", {
+ProfileSchema.set("toJSON", {
   virtuals: true,
 });
 
-module.exports = mongoose.model("Folder", FolderSchema);
+module.exports = mongoose.model("Folder", ProfileSchema);

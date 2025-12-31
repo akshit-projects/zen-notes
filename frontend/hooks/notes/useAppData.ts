@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Folder, Note } from '../types';
-
-const API_BASE_URL = 'http://localhost:9000/api'; // Assuming the server is proxied
+import type { Folder, Note } from '../../types';
+import api from '../../api/axios';
 
 export const useAppData = () => {
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -14,16 +13,16 @@ export const useAppData = () => {
     const fetchData = async () => {
       try {
         const [foldersRes, notesRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/folders`),
-          fetch(`${API_BASE_URL}/notes`),
+          api.get(`/folders`),
+          api.get(`/notes`),
         ]);
 
-        if (!foldersRes.ok || !notesRes.ok) {
+        if (!foldersRes || !notesRes) {
             throw new Error(`HTTP Error: ${foldersRes.status} / ${notesRes.status}`);
         }
 
-        const fetchedFolders = await foldersRes.json();
-        const fetchedNotes = await notesRes.json();
+        const fetchedFolders = foldersRes.data;
+        const fetchedNotes = await notesRes.data;
         
         setFolders(fetchedFolders);
         setNotes(fetchedNotes);
@@ -45,13 +44,9 @@ export const useAppData = () => {
 
   const createFolder = useCallback(async (): Promise<Folder | null> => {
     try {
-      const res = await fetch(`${API_BASE_URL}/folders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'New Folder' }),
-      });
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const newFolder = await res.json();
+      const res = await api.post(`/folders`, { name: 'New Folder', profileId: 'default' });
+      if (res.status != 201) throw new Error(`Server error: ${res.status}`);
+      const newFolder = await res.data;
       setFolders(prev => [...prev, newFolder]);
       setActiveFolderId(newFolder.id);
       setActiveNoteId(null);
@@ -68,13 +63,9 @@ export const useAppData = () => {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE_URL}/folders/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName.trim() }),
-      });
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const updatedFolder = await res.json();
+      const res = await api.put(`/folders/${id}`, { name: newName.trim() });
+      if (res.status !== 200) throw new Error(`Server error: ${res.status}`);
+      const updatedFolder = await res.data;
       setFolders(prev => prev.map(f => (f.id === id ? updatedFolder : f)));
     } catch (error) {
       console.error("Failed to rename folder:", error);
@@ -84,8 +75,8 @@ export const useAppData = () => {
   const deleteFolder = useCallback(async (id: string, skipConfirm = false) => {
     if (skipConfirm || window.confirm('Are you sure you want to delete this folder and all its notes?')) {
       try {
-        const res = await fetch(`${API_BASE_URL}/folders/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const res = await api.delete(`/folders/${id}`);
+        if (res.status !== 200) throw new Error(`Server error: ${res.status}`);
         
         const remainingFolders = folders.filter(f => f.id !== id);
         setFolders(remainingFolders);
@@ -105,13 +96,9 @@ export const useAppData = () => {
   const createNote = useCallback(async (folderId: string): Promise<Note | null> => {
     const newTitle = 'New Note';
     try {
-      const res = await fetch(`${API_BASE_URL}/notes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderId, title: newTitle, content: `New Note` }),
-      });
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const newNote = await res.json();
+      const res = await api.post(`/notes`, { folderId, title: newTitle, content: `New Note`, profileId: 'default' });
+      if (res.status !== 201) throw new Error(`Server error: ${res.status}`);
+      const newNote = await res.data;
       setNotes(prev => [...prev, newNote]);
       setActiveNoteId(newNote.id);
       return newNote;
@@ -127,13 +114,9 @@ export const useAppData = () => {
         return;
     }
     try {
-      const res = await fetch(`${API_BASE_URL}/notes/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle.trim() }),
-      });
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const updatedNote = await res.json();
+      const res = await api.put(`/notes/${id}`, { title: newTitle.trim(), profileId: 'default' });
+      if (res.status !== 200) throw new Error(`Server error: ${res.status}`);
+      const updatedNote = await res.data;
       setNotes(prev => prev.map(n => (n.id === id ? { ...n, title: updatedNote.title } : n)));
     } catch(e){
         console.error("Failed to rename note:", e);
@@ -142,12 +125,8 @@ export const useAppData = () => {
   
   const updateNoteContent = useCallback(async (id: string, content: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/notes/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      });
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const res = await api.put(`/notes/${id}`, { content });
+      if (res.status !== 200) throw new Error(`Server error: ${res.status}`);
       setNotes(prev => prev.map(n => (n.id === id ? { ...n, content } : n)));
     } catch(e) {
         console.error("Failed to update note content:", e);
@@ -157,8 +136,8 @@ export const useAppData = () => {
   const deleteNote = useCallback(async (id: string, skipConfirm = false) => {
     if (skipConfirm || window.confirm('Are you sure you want to delete this note?')) {
       try {
-        const res = await fetch(`${API_BASE_URL}/notes/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const res = await api.delete(`/notes/${id}`);
+        if (res.status !== 200) throw new Error(`Server error: ${res.status}`);
         const noteToDelete = notes.find(n => n.id === id);
         setNotes(prev => prev.filter(n => n.id !== id));
         if (activeNoteId === id) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import Sidebar from './components/Sidebar';
-import Editor from './components/Editor';
-import { useAppData } from './hooks/useAppData';
+import Sidebar from './Sidebar';
+import Editor from './Editor';
+import { useAppData } from '../../hooks/notes/useAppData';
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
